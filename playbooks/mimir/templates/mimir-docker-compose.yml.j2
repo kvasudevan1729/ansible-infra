@@ -1,0 +1,19 @@
+---
+services:
+  lab-mimir:
+    image: 'grafana/mimir:{{ mimir_version }}'
+    command: ["--config.file=/etc/mimir/config.yml", "-server.http-tls-cert-path=/certs/mimir.pem", "-server.http-tls-key-path=/certs/mimir.key", "-server.http-tls-client-auth=NoClientCert"]
+    ports:
+      - '9009:9009'
+      - '9095:9095'
+    volumes:
+      - {{ mimir_data_dir }}:{{ mimir_data_dir }}
+      - /opt/mimir/certs:/certs
+      - /opt/mimir/config.yml:/etc/mimir/config.yml
+    networks:
+      - mimirnet
+networks:
+  mimirnet:
+    driver: bridge
+    external: true
+

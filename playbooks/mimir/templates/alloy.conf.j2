@@ -1,0 +1,27 @@
+logging {
+  level = "warn"
+}
+
+prometheus.exporter.unix "unix_metrics" {
+  enable_collectors = ["ntp"]
+  disable_collectors = ["nfs", "zfs", "tapestats", "ipvs", "infiniband"]
+}
+
+prometheus.scrape "self_scrape" {
+  targets    = prometheus.exporter.unix.unix_metrics.targets
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.scrape "unifi_unpoller" {
+  targets = [
+    { "__address__" = "{{ ansible_default_ipv4.address }}:{{ unifi_unpoller_port }}", "__param_target" = "{{ ansible_default_ipv4.address }}", "job" = "unifi-unpoller" },
+  ]
+  metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "{{ mimir_endpoint }}"
+  }
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description= Grafana
+Documentation=https://github.com/grafana/grafana
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+WorkingDirectory=/opt/grafana
+ExecStart=docker compose up
+ExecReload=docker compose restart
+ExecStop=docker compose down
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target

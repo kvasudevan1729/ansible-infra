@@ -1,0 +1,60 @@
+---
+- name: Ensure services are up
+  hosts: mimir_vms
+  become: true
+
+  tasks:
+    - name: Ensure SSH is started
+      service:
+        name: ssh
+        state: started
+
+    - name: Ensure docker is started
+      service:
+        name: docker
+        state: started
+
+    - name: Ensure ntpsec is started
+      service:
+        name: ntpsec
+        state: started
+
+    - name: Ensure ntp servers refer to UK ntp pools
+      ansible.builtin.replace:
+        path: /etc/ntpsec/ntp.conf
+        regexp: '^pool (.*).ubuntu.pool.ntp.org iburst'
+        replace: 'pool \1.uk.pool.ntp.org iburst'
+      register: ntp_servers_pool
+
+    - name: Ensure ntpsec is started
+      service:
+        name: ntpsec
+        state: restarted
+      when: ntp_servers_pool.changed
+
+    - name: Ensure circleci-runner service is stopped
+      service:
+        name: circleci-runner
+        state: stopped
+
+    - name: setup alloy config
+      template:
+        src: templates/alloy.conf.j2
+        dest: /etc/alloy/config.alloy
+        owner: alloy
+        group: alloy
+        mode: '0640'
+      register: alloy_conf
+
+    - name: Add listen address for metrics
+      ansible.builtin.replace:
+        path: /etc/default/alloy
+        regexp: '^CUSTOM_ARGS=""'
+        replace: 'CUSTOM_ARGS="--server.http.listen-addr={{ ansible_default_ipv4.address}}:12345"'
+      register: default_alloy_conf
+
+    - name: Ensure alloy is started
+      service:
+        name: alloy
+        state: restarted
+      when: alloy_conf.changed or default_alloy_conf.changed

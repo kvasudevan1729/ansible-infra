@@ -1,0 +1,22 @@
+---
+services:
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - ./dashboards/lab-servies.yml:/etc/grafana/provisioning/dashboards/lab-servies.yml:ro
+      - ./datasources/ds.yml:/etc/grafana/provisioning/datasources/ds.yml:ro
+      - ./lab-dashboards:/var/lib/grafana/dashboards
+      - ./alerting:/etc/grafana/provisioning/alerting
+    networks:
+      - mimirnet
+networks:
+  mimirnet:
+    driver: bridge
+    external: true
+
+

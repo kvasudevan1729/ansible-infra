@@ -1,0 +1,48 @@
+---
+- name: Setup UFW rules and policies
+  hosts: mimir_vms
+  become: true
+
+  tasks:
+    - name: Ensure ufw is started
+      service:
+        name: ufw
+        state: started
+
+    - name: Allow all and enable ufw
+      community.general.ufw:
+        state: enabled
+        policy: allow
+
+    - name: Log ufw events
+      community.general.ufw:
+        logging: 'on'
+
+    - name: ufw rate limiting ssh
+      community.general.ufw:
+        rule: limit
+        port: ssh
+        proto: tcp
+
+    - name: Allow ssh
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Allow HTTP
+      community.general.ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+    - name: Allow mimir http endpoint
+      community.general.ufw:
+        rule: allow
+        port: '9009'
+        proto: tcp
+
+    - name: Allow grafana UI http endpoint
+      community.general.ufw:
+        rule: allow
+        port: '3000'
+        proto: tcp

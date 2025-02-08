@@ -1,0 +1,110 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: medium-alert
+      folder: kv-labs
+      interval: 5m
+      rules:
+        - uid: cebzhygbdbw1se
+          title: test-rule
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: P133E836FAEF1577F
+              model:
+                editorMode: code
+                expr: nut_ups_status{status="OL"}
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.99
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 5m
+          annotations:
+            summary: UPS health not good
+          isPaused: false
+          notification_settings:
+            receiver: {{ alerts_notification_team }}
+        - uid: eebzikvc4cphca
+          title: pve-up-rule
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: P133E836FAEF1577F
+              model:
+                editorMode: code
+                expr: pve_up{id="node/{{ pve_primary_server }}"}
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                            - 1
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 5m
+          annotations:
+            summary: PVE up/down check
+          isPaused: false
+          notification_settings:
+            receiver: {{ alerts_notification_team }}

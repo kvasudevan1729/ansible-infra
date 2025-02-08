@@ -1,0 +1,11 @@
+apiVersion: 1
+contactPoints:
+    - orgId: 1
+      name: {{ alerts_notification_team }}
+      receivers:
+        - uid: bebzhdp2wtgcgb
+          type: email
+          settings:
+            addresses: {{ mail_from_address }}
+            singleEmail: false
+          disableResolveMessage: false

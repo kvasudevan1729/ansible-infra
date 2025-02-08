@@ -1,0 +1,13 @@
+---
+- name: Install system/networking packages
+  hosts: mimir_vms
+  become: false
+  
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        pkg:
+          - ntpsec
+          - atop
+        state: latest
+        update_cache: true
