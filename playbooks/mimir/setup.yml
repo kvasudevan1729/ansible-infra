@@ -1,0 +1,220 @@
+---
+- name: Ensure mimir config is setup
+  hosts: mimir_vms
+  become: true
+  vars:
+    mimir_dir: '/opt/mimir'
+    mimir_data_dir: '/data/mimir'
+
+  tasks:
+    - name: create grafana/unfi directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: labadmin
+        group: labadmin
+        mode: '0755'
+      with_items:
+        - /opt/unifipoller
+        - /opt/grafana
+        - /opt/grafana/dashboards
+        - /opt/grafana/lab-dashboards
+        - /opt/grafana/datasources
+        - /opt/grafana/alerting
+
+    - name: copy lab-services.yml
+      copy:
+        src: files/lab-services.yml
+        dest: /opt/grafana/dashboards/lab-services.yml
+        owner: labadmin
+        group: labadmin
+        mode: '0644'
+      register: grafana_lab_services_yml
+
+    - name: render datasource.yml
+      template:
+        src: templates/ds.yml.j2
+        dest: /opt/grafana/datasources/ds.yml
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: grafana_datasources_yml
+
+    - name: render alert-contacts.yml
+      template:
+        src: templates/alert-contacts.yml.j2
+        dest: /opt/grafana/alerting/alert-contacts.yml
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: grafana_alert_contacts_yml
+
+    - name: render alert-rules.yml
+      template:
+        src: templates/alert-rules.yml.j2
+        dest: /opt/grafana/alerting/alert-rules.yml
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: grafana_alert_rules_yml
+
+    - name: copy lab services json
+      template:
+        src: templates/lab-services.json.j2
+        dest: /opt/grafana/lab-dashboards/lab-services.json
+        owner: labadmin
+        group: labadmin
+        mode: '0644'
+      register: grafana_lab_services_json
+
+    - name: copy grafana docker compose yml
+      template:
+        src: templates/grafana-docker-compose.yml.j2
+        dest: /opt/grafana/docker-compose.yml
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: grafana_docker_compose_yml
+
+    - name: copy grafana.ini
+      template:
+        src: templates/grafana.ini.j2
+        dest: /opt/grafana/grafana.ini
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: grafana_ini
+
+    - name: setup grafana systemd service
+      copy:
+        src: files/grafana-systemd.service
+        dest: /lib/systemd/system/grafana.service
+        owner: root
+        group: root
+        mode: '0644'
+      register: grafana_systemd_conf
+
+    - name: grafana systemd service - started
+      systemd_service:
+        name: grafana
+        state: started
+
+    - name: grafana systemd service - restart on config change
+      systemd_service:
+        name: grafana
+        state: restarted
+      when: grafana_systemd_conf.changed or
+            grafana_docker_compose_yml.changed or
+            grafana_lab_services_yml.changed or
+            grafana_lab_services_json.changed or
+            grafana_alert_rules_yml.changed or
+            grafana_alert_contacts_yml.changed
+
+    - name: copy unifipoller docker compose yml
+      template:
+        src: templates/unifi-poller-docker-compose.yml.j2
+        dest: /opt/unifipoller/docker-compose.yml
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: unifipoller_docker_compose_yml
+
+    - name: setup unifipoller systemd service
+      copy:
+        src: files/unifipoller-systemd.service
+        dest: /lib/systemd/system/unifipoller.service
+        owner: root
+        group: root
+        mode: '0644'
+      register: unifipoller_systemd_conf
+
+    - name: unifipoller systemd service - started
+      systemd_service:
+        name: unifipoller
+        state: started
+
+    - name: unifipoller systemd service - restart on config change
+      systemd_service:
+        name: unifipoller
+        state: restarted
+      when: unifipoller_systemd_conf.changed or unifipoller_docker_compose_yml.changed
+
+    - name: create mimir config and data directories
+      file:
+        path: '{{ item }}'
+        state: directory
+        owner: labadmin
+        group: labadmin
+        mode: '0755'
+      with_items:
+        - '/data/mimir'
+        - '/opt/mimir'
+        - '/opt/mimir/certs'
+
+    - name: copy mimir docker compose yml
+      template:
+        src: templates/mimir-docker-compose.yml.j2
+        dest: /opt/mimir/docker-compose.yml
+        mode: '0644'
+        owner: labadmin
+        group: labadmin
+      register: mimir_docker_compose_yml
+
+    - name: copy mimir config
+      template:
+        src: templates/mimir.yml.j2
+        dest: /opt/mimir/config.yml
+        mode: '0640'
+        owner: labadmin
+        group: labadmin
+      register: mimir_config
+
+    - name: check docker network mimirnet
+      shell:
+        cmd: docker network inspect mimirnet
+      register: mimirnet_exists
+      ignore_errors: yes
+
+    - name: create docker network mimirnet
+      shell:
+        cmd: docker network create mimirnet
+      register: mimirnet_config
+      when: mimirnet_exists.rc != 0
+
+    - name: setup mimir systemd service
+      copy:
+        src: files/mimir-systemd.service
+        dest: /lib/systemd/system/mimir.service
+        owner: root
+        group: root
+        mode: '0644'
+      register: mimir_systemd_conf
+
+    - name: mimir systemd service - started
+      systemd_service:
+        name: mimir
+        state: started
+
+    - name: mimir systemd service - restart on config change
+      systemd_service:
+        name: mimir
+        state: restarted
+      when: mimir_systemd_conf.changed or mimir_docker_compose_yml.changed
+
+    - name: copy mimir tls certificate
+      copy:
+        src: files/mimir.pem
+        dest: /opt/mimir/certs/mimir.pem
+        owner: labadmin
+        group: labadmin
+        mode: '0644'
+      register: mimir_tls_cert
+
+    - name: copy mimir tls key
+      copy:
+        src: files/mimir.key
+        dest: /opt/mimir/certs/mimir.key
+        owner: labadmin
+        group: labadmin
+        mode: '0600'
+      register: mimir_tls_key

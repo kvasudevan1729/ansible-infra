@@ -1,0 +1,18 @@
+[Unit]
+Description= Grafana Mimir
+Documentation=https://github.com/grafana/mimir
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+WorkingDirectory=/opt/mimir
+ExecStart=docker compose up
+ExecReload=docker compose restart
+ExecStop=docker compose down
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
+

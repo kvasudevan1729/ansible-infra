@@ -1,0 +1,17 @@
+---
+apiVersion: 1
+
+datasources:
+  - name: lab-mimir
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: https://{{ lab_mimir_hostname }}.{{ lab_domain_name }}:9009/prometheus
+    version: 1
+    editable: true
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+      alertmanagerUid: "alertmanager"
+    secureJsonData:
+      httpHeaderValue1: "demo"
+    isDefault: true

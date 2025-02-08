@@ -43,6 +43,8 @@ ups_labuser_password: !vault |
           6264
 ups_master: "pve-lab01"
 # mailjet
+mail_from_name: "labadmin"
+mail_from_address: "ladbadmin@kvlab.org"
 mailjet_user: <user-string>
 mailjet_password: !vault |
           $ANSIBLE_VAULT;1.1;AES256
