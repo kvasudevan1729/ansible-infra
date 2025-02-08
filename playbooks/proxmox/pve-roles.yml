@@ -1,0 +1,17 @@
+---
+- name: Ensure pve artefacts are setup
+  hosts: proxmox_servers
+  become: true
+
+  tasks:
+    - name: Add tfadmin pve role
+      ansible.builtin.shell:
+        cmd: pveum role add tfadmin -privs "{{ tfadmin_role_privs }}"
+
+    - name: Add tfadmin pve user
+      ansible.builtin.shell:
+        cmd: pveum user add tfadmin@pve --password {{ tfadmin_user_password }}
+
+    - name: Attach tfadmin pve user to tfadmin role
+      ansible.builtin.shell:
+        cmd: pveum aclmod / -user tfadmin@pve -role tfadmin

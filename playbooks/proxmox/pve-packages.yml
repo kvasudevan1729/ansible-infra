@@ -1,0 +1,25 @@
+---
+- name: Ensure pve artefacts are setup
+  hosts: proxmox_servers
+  become: true
+
+  tasks:
+    - name: apt update and full-upgrade 
+      apt:
+        upgrade: full
+        update_cache: yes
+
+    - name: Install pve dependencies
+      ansible.builtin.apt:
+        pkg:
+          - chrony
+          - postfix
+          - open-iscsi
+        state: latest
+        update_cache: true
+
+    - name: Install pve
+      ansible.builtin.apt:
+        name: proxmox-ve={{ proxmox_ve_version }}
+        state: present
+        update_cache: true

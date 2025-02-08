@@ -1,0 +1,34 @@
+#! /bin/sh
+
+case $1 in
+    onbatt)
+        logger -t ups-scheduled-tasks "Warning: UPS $UPSNAME experienced a power failure and is now running on battery!"
+        ;;
+    online)
+        logger -t ups-scheduled-tasks "Power on UPS $UPSNAME has been restored." 
+        ;;
+    lowbatt)
+        logger -t ups-scheduled-tasks "Warning: UPS $UPSNAME is low on battery! All connected Systems will be shut down soon."
+        ;;
+    fsd)
+        logger -t ups-scheduled-tasks "Warning: All Systems connected to UPS $UPSNAME will be shut down now!"
+        ;;
+    commok)
+        logger -t ups-scheduled-tasks "Communications with UPS $UPSNAME have been restored."
+        ;;
+    commbad)
+        logger -t ups-scheduled-tasks echo -e "Warning: Lost communications with UPS ${UPSNAME}!"
+        ;;
+    shutdown)
+        logger -t ups-scheduled-tasks echo -e "Warning: System $HOST is shutting down now!"
+        ;;
+    replbatt)
+        logger -t ups-scheduled-tasks echo -e "Warning: The UPS $UPSNAME needs to have its battery replaced!"
+        ;;
+    nocomm)
+        logger -t ups-scheduled-tasks "Warning: The UPS $UPSNAME can’t be contacted for monitoring!"
+        ;;
+    *)
+        logger -t ups-scheduled-tasks "Unrecognized command: $1"
+        ;;
+esac

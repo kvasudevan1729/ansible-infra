@@ -1,0 +1,47 @@
+#
+# Network UPS Tools - upssched.conf file
+#
+
+# The command script to run
+CMDSCRIPT /usr/local/bin/ups-scheduled-tasks
+
+# Command pipe and lock-file
+PIPEFN /run/nut/upssched.pipe
+LOCKFN /run/nut/upssched.lock
+
+# The UPS is back on line.
+# Cancel any running "On Battery" timer, then execute the "Online" command.
+AT ONLINE eaton@{{ ansible_hostname }} CANCEL-TIMER onbatt online
+
+# The UPS is on battery.
+# Start a 10 seconds timer, then execute the "On Battery" command.
+AT ONBATT eaton@{{ ansible_hostname }} START-TIMER onbatt 10
+
+# The UPS battery is low (as determined by the driver).
+# Execute the "Low Battery" command immediately.
+AT LOWBATT eaton@{{ ansible_hostname }} EXECUTE lowbatt
+
+# The UPS has been commanded into the "Forced Shutdown" mode.  
+# Execute the "Forced Shutdown" command immediately.
+AT FSD eaton@{{ ansible_hostname }} EXECUTE fsd
+
+# Communication with the UPS has been established.
+# Cancel any running "Communications Lost" timer, then execute the
+# "Communications Restored" command.
+AT COMMOK eaton@{{ ansible_hostname }} CANCEL-TIMER commbad commok
+
+# Communication with the UPS was just lost.
+# Start a 15 seconds timer, then execute the "Communications Lost" command.
+AT COMMBAD eaton@{{ ansible_hostname }} START-TIMER commbad 15
+
+# The local system is being shut down.    
+# Execute the "Notify Shutdown" command immediately.
+AT SHUTDOWN eaton@{{ ansible_hostname }} EXECUTE shutdown
+
+# The UPS needs to have its battery replaced.
+# Start a 5 minutes timer, then execute the "Replace Battery" command.
+AT REPLBATT eaton@{{ ansible_hostname }} START-TIMER replbatt 300
+
+# The UPS can’t be contacted for monitoring.
+# Start a 15 seconds timer, then execute the "No Communications" command.
+AT NOCOMM eaton@{{ ansible_hostname }} START-TIMER nocomm 15

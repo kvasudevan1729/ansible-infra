@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+ups_host="eaton@$(hostname)"
+ups_pass=$(cat /etc/nut/upsd.users | grep -A 2 '^\[labadmin' | grep password | cut -d= -f2 | tr -d ' ')
+
+# invoke shutdown if charge goes below BATTERY_CHARGE_LOW
+BATTERY_CHARGE_LOW={{ battery_charge_low }}
+echo "=> setting the battery charge low to ${BATTERY_CHARGE_LOW} % ..."
+upsrw -u labadmin -p $ups_pass -s battery.charge.low=${BATTERY_CHARGE_LOW} ${ups_host}
+
+# invoke shutdown if running time of battery goes below BATTERY_RUNTIME_LOW seconds
+BATTERY_RUNTIME_LOW={{ battery_runtime_low }}
+echo "=> setting the battery runtime low to ${BATTERY_RUNTIME_LOW} seconds ..."
+upsrw -u labadmin -p $ups_pass -s battery.runtime.low=${BATTERY_RUNTIME_LOW} ${ups_host}
+
+# setting datea and time
+curr_date=$(date '+%Y/%m/%d')
+echo "=> setting current date to ${curr_date}"
+sudo upsrw -u labadmin -p $ups_pass -s ups.date=${curr_date} ${ups_host}
+
+curr_hour=$(date '+%H')
+curr_min_time=$(date '+%M:%S')
+
+# adjust for eaton UPS, increment hour by 1 and set
+_=$((curr_hour++))
+curr_hr_min_time="${curr_hour}:${curr_min_time}"
+echo "=> setting current time to ${curr_hr_min_time}"
+sudo upsrw -u labadmin -p $ups_pass -s ups.time=${curr_hr_min_time} ${ups_host}
+
+echo "sleeping for a bit to cross-check date and time values ..."
+sleep 10
+
+echo "=> ups battery settings: "
+upsc ${ups_host} | grep 'battery.*.low'
+
+echo "=> current date and time in UPS: "
+upsc ${ups_host} | grep -E -w 'ups.date|ups.time'

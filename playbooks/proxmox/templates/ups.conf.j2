@@ -1,0 +1,15 @@
+pollinterval = 15
+maxretry = 3
+
+offdelay = 120
+ondelay = 240
+
+user = "nut"
+
+[eaton]
+	driver = "usbhid-ups"
+	port = "auto"
+	vendorid = "{{ ups_eaton_vendor_id }}"
+	productid = "{{ ups_eaton_product_id }}"
+	product = "{{ ups_eaton_product }}"
+	serial = "{{ ups_eaton_serial_no }}"

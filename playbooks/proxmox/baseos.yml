@@ -1,0 +1,43 @@
+---
+- name: Install system/networking packages
+  hosts: proxmox_servers
+  become: true 
+  
+  tasks:
+    - name: Install system packages
+      ansible.builtin.apt:
+        pkg:
+          - ntpsec
+          - lynis
+          - net-tools
+        state: latest
+        update_cache: true
+
+    - name: Update the root user password
+      ansible.builtin.user:
+        name: root
+        shell: /bin/bash
+        group: root
+        password: '{{ root_password }}'
+
+    - name: Create the labadmin user and add public key
+      ansible.builtin.user:
+        name: labadmin
+        shell: /bin/bash
+        groups:
+          - sudo
+          - docker
+        password: '{{ labadmin_password }}'
+        append: true
+
+    - name: Add labadmin ssh public key to authorized_keys
+      ansible.posix.authorized_key:
+        user: labadmin
+        state: present
+        key: '{{ labadmin_ssh_public_key }}'
+
+    - name: Create the labops user
+      ansible.builtin.user:
+        name: labops
+        shell: /bin/bash
+        password: '{{ labops_password }}'

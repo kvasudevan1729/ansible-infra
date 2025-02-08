@@ -1,0 +1,106 @@
+---
+- name: Install and setup UPS tools and packages
+  hosts: proxmox_servers
+  become: true 
+
+  tasks:
+    - name: Install nut package
+      apt:
+        name: nut={{ nut_version }}
+        state: present
+        update_cache: true
+
+    - name: Ensure mode is set to netserver for master
+      lineinfile:
+        path: /etc/nut/nut.conf
+        regexp: '^MODE='
+        line: MODE=netserver
+      register: nut_master_conf
+
+    - name: Setup ups.conf
+      template:
+        src: templates/ups.conf.j2
+        dest: /etc/nut/ups.conf
+        owner: nut
+        group: nut
+        mode: '0640'
+      register: ups_master_conf
+
+    - name: Setup upsd.conf
+      copy:
+        src: files/upsd.conf
+        dest: /etc/nut/upsd.conf
+        owner: nut
+        group: nut
+        mode: '0640'
+      register: upsd_conf
+
+    - name: Setup upsmon.conf on UPS master
+      template:
+        src: templates/upsmon_master.conf.j2
+        dest: /etc/nut/upsmon.conf
+        owner: nut
+        group: nut
+        mode: '0640'
+      register: upsmon_master_conf
+
+    - name: Setup upssched.conf
+      template:
+        src: templates/upssched_master.conf.j2
+        dest: /etc/nut/upssched.conf
+        owner: nut
+        group: nut
+        mode: '0640'
+      register: upssched_master_conf
+
+    - name: Setup upsd.users
+      template:
+        src: templates/upsd.users.j2
+        dest: /etc/nut/upsd.users
+        owner: root
+        group: nut
+        mode: '0640'
+      register: upsd_users
+
+    - name: Ensure nut-server is restarted
+      service:
+        name: nut-server
+        state: restarted
+      when:
+        - nut_master_conf.changed or ups_master_conf.changed or upsmon_master_conf.changed or upssched_master_conf.changed
+
+    - name: Ensure nut-client is restarted
+      service:
+        name: nut-client
+        state: restarted
+      when:
+        - nut_master_conf.changed or ups_master_conf.changed or upsmon_master_conf.changed or upssched_master_conf.changed
+
+    - name: Ensure nut-monitor is restarted
+      service:
+        name: nut-monitor
+        state: restarted
+      when:
+        - nut_master_conf.changed or ups_master_conf.changed or upsmon_master_conf.changed or upssched_master_conf.changed
+
+    - name: Setup ups-scheduled-tasks
+      copy:
+        src: files/ups-scheduled-tasks
+        dest: /usr/local/bin/ups-scheduled-tasks
+        owner: nut
+        group: nut
+        mode: '0740'
+
+    - name: Setup set_ups_settings.sh
+      template:
+        src: templates/set_ups_settings.sh.j2
+        dest: /usr/local/bin/set_ups_settings.sh
+        owner: nut
+        group: nut
+        mode: '0755'
+      register: set_ups_settings
+
+    - name: run set_ups_settings.sh
+      shell:
+        cmd: /usr/local/bin/set_ups_settings.sh
+      when: set_ups_settings.changed

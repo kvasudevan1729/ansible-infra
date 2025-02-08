@@ -1,0 +1,18 @@
+---
+pve_eno_interface: 'eth0'
+lab_network_subnet_mask: '24'
+proxmox_ve_version: "8.3.0"
+nut_exporter_version: "1.2.1"
+nut_exporter_port: 9995
+pve_exporter_version: "3.5.1"
+pve_exporter_port: 9221
+nut_version: "2.8.0-7"
+# threshold battery %age when UPS sends shut signal
+battery_charge_low: 40
+# threshold seconds when remaining running time reaches below this value
+battery_runtime_low: 900
+ups_labadmin: labadmin
+ups_labuser: labuser
+tfadmin_role_privs: 'Datastore.AllocateSpace Datastore.Audit Pool.Allocate Sys.Audit Sys.Console Sys.Modify VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.Cloudinit VM.Config.CPU VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.Console VM.Migrate VM.Monitor VM.PowerMgmt SDN.Use'
+grafana_admin_user: labadmin
+grafana_admin_email: labadmin@example.org

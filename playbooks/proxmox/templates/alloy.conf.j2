@@ -1,0 +1,61 @@
+logging {
+  level = "warn"
+}
+
+prometheus.exporter.unix "unix_metrics" {
+  enable_collectors = ["ntp"]
+  disable_collectors = ["nfs", "zfs", "tapestats", "ipvs", "infiniband"]
+}
+
+prometheus.scrape "self_scrape" {
+  targets    = prometheus.exporter.unix.unix_metrics.targets
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+{% if pve_primary %}
+// scrape local nut exporter
+prometheus.scrape "ups_nut" {
+  targets = [
+    { "__address__" = "{{ ansible_default_ipv4.address }}:{{ nut_exporter_port }}", "__param_target" = "{{ ansible_default_ipv4.address }}", "job" = "ups-nut" },
+  ]
+  metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+{% endif %}
+
+// scrape local pve exporter
+prometheus.scrape "pve" {
+  targets = [
+    { "__address__" = "{{ ansible_hostname }}.{{ lab_domain_name }}:{{ pve_exporter_port }}", "__param_target" = "{{ ansible_hostname }}.{{ lab_domain_name }}", "job" = "pve" },
+  ]
+  metrics_path = "/pve"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "{{ mimir_endpoint }}"
+  }
+}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+}
+
+loki.source.journal "read"  {
+  forward_to    = [loki.write.grafana_loki.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  format_as_json = true
+  labels        = {component = "loki.source.journal", instance="{{ ansible_hostname }}"}
+}
+
+loki.write "grafana_loki" {
+  endpoint {
+    url = "{{ loki_endpoint }}"
+  }
+}

@@ -1,0 +1,10 @@
+services:
+  nut-exporter:
+    image: hon95/prometheus-nut-exporter:{{ nut_exporter_version }}
+    environment:
+      - TZ=Europe/London
+      - HTTP_PATH=/metrics
+    ports:
+      - "{{ nut_exporter_port }}:{{ nut_exporter_port }}/tcp"
+    extra_hosts:
+      - "{{ ansible_hostname }}.{{ lab_domain_name }}:{{ ansible_default_ipv4.address }}"

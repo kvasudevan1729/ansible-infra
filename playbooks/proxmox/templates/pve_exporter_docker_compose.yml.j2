@@ -1,0 +1,9 @@
+services:
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:{{ pve_exporter_version }}
+    ports:
+      - "{{ pve_exporter_port }}:{{ pve_exporter_port }}/tcp"
+    volumes:
+      - ./pve.yml:/etc/prometheus/pve.yml
+    extra_hosts:
+      - "{{ ansible_hostname }}.{{ lab_domain_name }}:{{ ansible_default_ipv4.address }}"

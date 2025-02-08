@@ -1,0 +1,29 @@
+---
+- name: Ensure ACME certs are setup
+  hosts: proxmox_servers
+  become: true
+
+  tasks:
+    - name: Copy TLS key
+      copy:
+        src: "files/{{ ansible_hostname }}/pveproxy-ssl.key"
+        dest: /etc/pve/local/pveproxy-ssl.key
+        mode: '0640'
+        owner: root
+        group: www-data
+      register: pveproxy_key
+
+    - name: Copy TLS cert
+      copy:
+        src: "files/{{ ansible_hostname }}/pveproxy-ssl.pem"
+        dest: /etc/pve/local/pveproxy-ssl.pem
+        mode: '0640'
+        owner: root
+        group: www-data
+      register: pveproxy_cert
+
+    - name: Ensure pveproxy is started
+      service:
+        name: pveproxy
+        state: restarted
+      when: pveproxy_key.changed or pveproxy_cert.changed

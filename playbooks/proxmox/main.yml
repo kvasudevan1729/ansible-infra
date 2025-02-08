@@ -1,0 +1,12 @@
+---
+# main file to provision packages and services on proxmox baremetal servers
+- import_playbook: docker.yml
+- import_playbook: baseos.yml
+- import_playbook: pve-prepare.yml
+- import_playbook: pve-packages.yml
+- import_playbook: pve-roles.yml
+- import_playbook: pve-certs.yml
+- import_playbook: alloy.yml
+- import_playbook: ups-nut-master.yml
+- import_playbook: ups-nut-slave.yml
+- import_playbook: services.yml

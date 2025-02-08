@@ -1,0 +1,17 @@
+[Unit]
+Description= PVE exporter
+Documentation=https://github.com/prometheus-pve/prometheus-pve-exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+WorkingDirectory=/opt/pve-exporter
+ExecStart=docker compose up
+ExecReload=docker compose restart
+ExecStop=docker compose down
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target

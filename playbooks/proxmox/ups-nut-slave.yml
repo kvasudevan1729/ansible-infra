@@ -1,0 +1,72 @@
+---
+- name: Install and setup UPS tools and packages
+  hosts: proxmox_servers
+  become: true 
+
+  tasks:
+    - name: Install nut package
+      apt:
+        name: nut={{ nut_version }}
+        state: present
+        update_cache: true
+
+    - name: Ensure mode is set to netclient for slave
+      lineinfile:
+        path: /etc/nut/nut.conf
+        regexp: '^MODE='
+        line: MODE=netclient
+      register: nut_slave_conf
+
+    - name: Setup upsmon.conf on UPS slave
+      template:
+        src: templates/upsmon_slave.conf.j2
+        dest: /etc/nut/upsmon.conf
+        owner: nut
+        group: nut
+        mode: '0640'
+      register: upsmon_slave_conf
+
+    - name: Setup upssched.conf
+      template:
+        src: templates/upssched_slave.conf.j2
+        dest: /etc/nut/upssched.conf
+        owner: nut
+        group: nut
+        mode: '0640'
+      register: upssched_slave_conf
+
+    - name: Ensure nut-server is restarted
+      service:
+        name: nut-server
+        state: stopped
+
+    - name: Ensure nut-client is restarted
+      service:
+        name: nut-client
+        state: restarted
+      when:
+        - nut_slave_conf.changed or upsmon_slave_conf.changed or upssched_slave_conf.changed
+
+    - name: Ensure nut-monitor is restarted
+      service:
+        name: nut-monitor
+        state: restarted
+      when:
+        - nut_slave_conf.changed or upsmon_slave_conf.changed or upssched_slave_conf.changed
+
+    - name: Setup ups-scheduled-tasks
+      copy:
+        src: files/ups-scheduled-tasks
+        dest: /usr/local/bin/ups-scheduled-tasks
+        owner: nut
+        group: nut
+        mode: '0740'
+
+    - name: Setup set_ups_settings.sh
+      template:
+        src: templates/set_ups_settings.sh.j2
+        dest: /usr/local/bin/set_ups_settings.sh
+        owner: nut
+        group: nut
+        mode: '0755'
+      register: set_ups_settings

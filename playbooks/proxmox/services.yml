@@ -1,0 +1,28 @@
+---
+- name: Ensure services are up
+  hosts: proxmox_servers
+  become: true
+
+  tasks:
+    - name: Ensure SSH is started
+      service:
+        name: ssh
+        state: started
+
+    - name: Ensure ntpsec is started
+      service:
+        name: ntpsec
+        state: started
+
+    - name: Ensure ntp servers refer to UK ntp pools
+      ansible.builtin.replace:
+        path: /etc/ntpsec/ntp.conf
+        regexp: '^pool (.*).debian.pool.ntp.org iburst'
+        replace: 'pool \1.uk.pool.ntp.org iburst'
+      register: ntp_servers_pool
+
+    - name: Ensure ntpsec is started
+      service:
+        name: ntpsec
+        state: restarted
+      when: ntp_servers_pool.changed

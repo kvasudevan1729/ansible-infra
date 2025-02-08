@@ -1,0 +1,135 @@
+---
+- name: Setup and configure alloy
+  hosts: proxmox_servers
+  become: false
+  
+  tasks:
+    - name: setup up apt key and repo for grafana
+      ansible.builtin.get_url:
+        url: https://apt.grafana.com/gpg.key
+        dest: /var/tmp/grafana.gpg
+        mode: '0644'
+        force: true
+      register: grafana_gpg_key
+
+    - name: dearmor grafana gpg key
+      ansible.builtin.shell:
+        cmd: cat /var/tmp/grafana.gpg | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+      when: grafana_gpg_key.changed
+
+    - name: grafana - apt source
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64, signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+        state: present
+        filename: grafana
+
+    - name: Install packages
+      ansible.builtin.apt:
+        pkg: alloy
+        state: latest
+        update_cache: true
+
+    - name: Ensure alloy is started
+      service:
+        name: alloy
+        state: started
+
+    - name: setup alloy config
+      template:
+        src: templates/alloy.conf.j2
+        dest: /etc/alloy/config.alloy
+        owner: alloy
+        group: alloy
+        mode: '0640'
+      register: alloy_conf
+
+    - name: Add listen address for metrics
+      ansible.builtin.replace:
+        path: /etc/default/alloy
+        regexp: '^CUSTOM_ARGS=""'
+        replace: 'CUSTOM_ARGS="--server.http.listen-addr={{ ansible_default_ipv4.address}}:12345"'
+      register: default_alloy_conf
+
+    - name: Ensure alloy is started
+      service:
+        name: alloy
+        state: restarted
+      when: alloy_conf.changed or default_alloy_conf.changed
+
+    - name: Setup nut-exporter directory
+      file:
+        path: '/opt/nut-exporter'
+        state: directory
+        owner: labadmin
+        group: labadmin
+        mode: '0755'
+
+    - name: setup nut-exporter docker-compose
+      template:
+        src: templates/nut_exporter_docker_compose.yml.j2
+        dest: /opt/nut-exporter/docker-compose.yml
+        owner: labadmin
+        group: labadmin
+        mode: '0644'
+      register: nut_exporter_docker_compose_yml
+
+    - name: setup nut-exporter systemd service
+      copy:
+        src: files/nut-exporter-systemd.service
+        dest: /lib/systemd/system/nut-exporter.service
+        owner: root
+        group: root
+        mode: '0644'
+      register: nut_exporter_systemd_conf
+
+    - name: Setup pve-exporter directory
+      file:
+        path: '/opt/pve-exporter'
+        state: directory
+        owner: labadmin
+        group: labadmin
+        mode: '0755'
+
+    - name: setup pve-exporter docker-compose
+      template:
+        src: templates/pve_exporter_docker_compose.yml.j2
+        dest: /opt/pve-exporter/docker-compose.yml
+        owner: labadmin
+        group: labadmin
+        mode: '0644'
+      register: pve_exporter_docker_compose_yml
+
+    - name: setup pve.yml for credentials
+      template:
+        src: templates/pve_yml.j2
+        dest: /opt/pve-exporter/pve.yml
+        owner: labadmin
+        group: labadmin
+        mode: '0644'
+      register: pve_yml
+
+    - name: setup pve-exporter systemd service
+      copy:
+        src: files/pve-exporter-systemd.service
+        dest: /lib/systemd/system/pve-exporter.service
+        owner: root
+        group: root
+        mode: '0644'
+      register: pve_exporter_systemd_conf
+
+    - name: systemd daemon-reload
+      systemd_service:
+        daemon_reload: true
+      when: nut_exporter_systemd_conf.changed or pve_exporter_systemd_conf.changed
+
+    - name: pve-exporter systemd service - started
+      systemd_service:
+        name: pve-exporter
+        state: restarted
+      when: pve_exporter_systemd_conf.changed or pve_exporter_docker_compose_yml.changed
+
+    - name: nut-exporter systemd service - started
+      systemd_service:
+        name: nut-exporter
+        state: restarted
+      when: nut_exporter_systemd_conf.changed or nut_exporter_docker_compose_yml.changed

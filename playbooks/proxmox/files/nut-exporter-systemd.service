@@ -1,0 +1,17 @@
+[Unit]
+Description= NUT exporter
+Documentation=https://github.com/DRuggeri/nut_exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+WorkingDirectory=/opt/nut-exporter
+ExecStart=docker compose up
+ExecReload=docker compose restart
+ExecStop=docker compose down
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
